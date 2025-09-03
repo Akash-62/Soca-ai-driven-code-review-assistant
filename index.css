@@ -95,3 +95,88 @@ button {
 
 /* Keep code blocks horizontally scrollable on narrow screens but wrapped by default */
 pre { overflow-x: auto; }
+
+/* --- Code editor & panel responsive tweaks --- */
+/* Ensure textareas (code editor) have sensible min/max heights and scroll */
+textarea, textarea.font-mono {
+  min-height: 140px;
+  max-height: 48vh; /* keep editor from overflowing viewport on mobile */
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+/* Make sure flex children and scrollable panels can shrink on small viewports */
+.flex-grow, .rounded-md, .bg-bg-light\/50, .bg-bg-dark\/30 {
+  min-height: 0;
+}
+
+/* Prevent nested flex layouts from forcing overflow */
+.flex, .flex-col, .flex-row {
+  min-height: 0;
+}
+
+@media (max-width: 767px) {
+  /* Reduce panel padding and font sizes to fit narrow screens */
+  .p-4 { padding: 0.75rem !important; }
+  .p-0.5 { padding: 0.25rem !important; }
+  .pl-9 { padding-left: 1.25rem !important; }
+  .container { padding-left: 0.75rem; padding-right: 0.75rem; }
+
+  /* Slightly smaller monospace font in code areas to avoid wrapping issues */
+  .font-mono, pre, code, textarea { font-size: 0.88rem; }
+
+  /* Reduce large icon/logo sizes */
+  .w-20 { width: 4.25rem; }
+  .h-20 { height: 4.25rem; }
+}
+
+/* Fluid typography and layout helpers for all devices */
+:root {
+  /* base font-size scales with viewport width for better readability */
+  font-size: 16px;
+}
+
+@media (max-width: 1200px) {
+  :root { font-size: 15px; }
+}
+@media (max-width: 992px) {
+  :root { font-size: 14.5px; }
+}
+@media (max-width: 768px) {
+  :root { font-size: 14px; }
+}
+@media (max-width: 420px) {
+  :root { font-size: 13.5px; }
+}
+
+/* Make the primary action button full width on small screens */
+@media (max-width: 767px) {
+  .w-full.sm\:w-auto { width: 100% !important; }
+  .flex-shrink-0.flex.flex-col.sm\:flex-row { flex-direction: column !important; }
+  /* Ensure action button isn't pushed offscreen */
+  button.w-full { width: 100% !important; }
+}
+
+/* Better responsive grid breakpoints for content panels */
+@media (max-width: 1024px) {
+  .grid.grid-cols-1.md\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Make headers compact on small devices */
+@media (max-width: 640px) {
+  header .container { padding-left: 0.5rem; padding-right: 0.5rem; }
+  header .container svg { width: 2.25rem; height: 2.25rem; }
+  .text-2xl { font-size: 1.25rem; }
+  .text-xl { font-size: 1rem; }
+}
+
+/* Ensure code editor grows but never overflows viewport height */
+textarea, .flex-grow > textarea {
+  max-height: 55vh; /* slightly larger on larger devices */
+}
+
