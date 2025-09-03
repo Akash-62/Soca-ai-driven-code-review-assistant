@@ -33,14 +33,7 @@
         --color-code-border: #E5E7EB; /* Match other borders */
       }
 
-      #particle-canvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
-      }
+  /* particle background removed */
 
       @keyframes pulse-glow {
           0%, 100% {
@@ -270,6 +263,7 @@
         border: 2px solid transparent;
         background: linear-gradient(120deg, var(--color-brand-primary), var(--color-brand-accent)) border-box;
         -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
         -webkit-mask-composite: destination-out;
         mask-composite: exclude;
         opacity: 0.6;
@@ -342,121 +336,7 @@
 <link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-bg-dark font-sans text-text-primary transition-colors duration-300">
-    <canvas id="particle-canvas"></canvas>
     <div id="root"></div>
-    <script>
-      const canvas = document.getElementById('particle-canvas');
-      const ctx = canvas.getContext('2d');
-      let particles = [];
-      const numParticles = 100;
-      
-      const particleColors = {
-        dark: {
-          particle: 'rgba(0, 169, 165, 0.5)',
-          line: (opacity) => `rgba(78, 204, 163, ${opacity})`
-        },
-        light: {
-          particle: 'rgba(31, 41, 55, 0.4)', // dark gray
-          line: (opacity) => `rgba(107, 114, 128, ${opacity})` // medium gray
-        }
-      };
-      let currentTheme = 'dark';
-      let currentColors = particleColors.dark;
-
-      function updateParticleColors() {
-        const theme = document.documentElement.dataset.theme || 'dark';
-        if (theme !== currentTheme) {
-            currentTheme = theme;
-            currentColors = particleColors[currentTheme];
-            // Re-initialize particles to apply new colors immediately
-            init();
-        }
-      }
-
-      function resizeCanvas() {
-          canvas.width = window.innerWidth;
-          canvas.height = window.innerHeight;
-      }
-
-      class Particle {
-          constructor(x, y) {
-              this.x = x;
-              this.y = y;
-              this.size = Math.random() * 2 + 1;
-              this.speedX = (Math.random() - 0.5) * 1.5;
-              this.speedY = (Math.random() - 0.5) * 1.5;
-              this.color = currentColors.particle;
-          }
-          update() {
-              this.x += this.speedX;
-              this.y += this.speedY;
-
-              if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
-              if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
-          }
-          draw() {
-              ctx.fillStyle = this.color;
-              ctx.beginPath();
-              ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-              ctx.fill();
-          }
-      }
-
-      function init() {
-          particles = [];
-          for (let i = 0; i < numParticles; i++) {
-              particles.push(new Particle(Math.random() * canvas.width, Math.random() * canvas.height));
-          }
-      }
-
-      function connect() {
-          for (let a = 0; a < particles.length; a++) {
-              for (let b = a; b < particles.length; b++) {
-                  const dx = particles[a].x - particles[b].x;
-                  const dy = particles[a].y - particles[b].y;
-                  const distance = Math.sqrt(dx * dx + dy * dy);
-
-                  if (distance < 100) {
-                      ctx.strokeStyle = currentColors.line(1 - distance / 100);
-                      ctx.lineWidth = 0.5;
-                      ctx.beginPath();
-                      ctx.moveTo(particles[a].x, particles[a].y);
-                      ctx.lineTo(particles[b].x, particles[b].y);
-                      ctx.stroke();
-                  }
-              }
-          }
-      }
-
-      function animate() {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          particles.forEach(p => {
-              p.update();
-              p.draw();
-          });
-          connect();
-          requestAnimationFrame(animate);
-      }
-      
-      const observer = new MutationObserver((mutationsList) => {
-        for (const mutation of mutationsList) {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-                updateParticleColors();
-            }
-        }
-      });
-
-      observer.observe(document.documentElement, { attributes: true });
-
-      window.addEventListener('resize', () => {
-          resizeCanvas();
-          init();
-      });
-
-      resizeCanvas();
-      updateParticleColors(); // This will call init()
-      animate();
-    </script>
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>
