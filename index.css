@@ -10,6 +10,21 @@ html, body, #root {
   height: 100%;
 }
 
+/* Subtle static background (non-animated) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1; /* behind app content */
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(78,204,163,0.06), transparent 12%),
+    radial-gradient(circle at 85% 80%, rgba(138,43,226,0.04), transparent 16%),
+    linear-gradient(180deg, rgba(3,6,23,0.55), rgba(10,12,28,0.6));
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
 img, svg, picture {
   max-width: 100%;
   height: auto;
@@ -121,7 +136,7 @@ textarea, textarea.font-mono {
 @media (max-width: 767px) {
   /* Reduce panel padding and font sizes to fit narrow screens */
   .p-4 { padding: 0.75rem !important; }
-  .p-0.5 { padding: 0.25rem !important; }
+  .p-0\.5 { padding: 0.25rem !important; }
   .pl-9 { padding-left: 1.25rem !important; }
   .container { padding-left: 0.75rem; padding-right: 0.75rem; }
 
