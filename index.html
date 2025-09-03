@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SOCA – AI-Driven Code Review Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --color-brand-primary: #00A9A5;
+        --color-brand-secondary: #4ECCA3;
+        --color-brand-accent: #8A2BE2;
+        --color-bg-dark: #1A1A2E;
+        --color-bg-light: #162447;
+        --color-text-primary: #EAEAEA;
+        --color-text-secondary: #B8B8D1;
+        --color-border-color: #2C3E50;
+        --color-code-bg: #0D1117;
+        --color-code-border: #30363d;
+      }
+
+      [data-theme='light'] {
+        --color-brand-primary: #008080; /* Deeper Teal for better contrast */
+        --color-brand-secondary: #2E8B57; /* SeaGreen */
+        --color-brand-accent: #6A5ACD; /* SlateBlue */
+        --color-bg-dark: #F4F7FC; /* Very light, clean blue-gray background */
+        --color-bg-light: #FFFFFF; /* Keep panels white for crispness */
+        --color-text-primary: #1F2937; /* Cool dark gray for text */
+        --color-text-secondary: #6B7280; /* Softer gray for secondary text */
+        --color-border-color: #E5E7EB; /* Subtle gray border */
+        --color-code-bg: #F9FAFB; /* Off-white for code blocks */
+        --color-code-border: #E5E7EB; /* Match other borders */
+      }
+
+      #particle-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+
+      @keyframes pulse-glow {
+          0%, 100% {
+              box-shadow: 0 0 15px var(--color-brand-primary), 0 0 5px var(--color-brand-secondary);
+              transform: scale(1);
+          }
+          50% {
+              box-shadow: 0 0 25px var(--color-brand-primary), 0 0 10px var(--color-brand-secondary);
+              transform: scale(1.05);
+          }
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideInUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      
+      /* Winner Animation Keyframes */
+      @keyframes trophy-glow {
+        0% {
+          transform: scale(0.5);
+          opacity: 0;
+          filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 5px #fff) drop-shadow(0 0 15px var(--color-brand-primary));
+        }
+        60% {
+          transform: scale(1.1);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+          filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 15px #fff) drop-shadow(0 0 30px var(--color-brand-primary));
+        }
+      }
+
+      .confetti {
+          position: absolute;
+          top: -20px; /* Start off-screen */
+          opacity: 0;
+          animation-name: confetti-fall;
+          animation-timing-function: linear;
+          animation-iteration-count: 1;
+          animation-fill-mode: forwards;
+      }
+
+      @keyframes confetti-fall {
+          0% {
+              transform: translateY(0) rotateZ(var(--initial-rotation)) rotateY(0deg);
+              opacity: 1;
+          }
+          100% {
+              transform: translateY(110vh) rotateZ(calc(var(--initial-rotation) + 720deg)) rotateY(720deg);
+              opacity: 0;
+          }
+      }
+      
+       /* Loser Animation Keyframes */
+      @keyframes motivation-fade-in {
+        0% {
+          opacity: 0;
+          transform: translateY(30px);
+          filter: blur(5px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+          filter: blur(0);
+        }
+      }
+      
+      @keyframes text-glow-and-scale {
+        0% {
+            opacity: 0;
+            transform: scale(0.8);
+            text-shadow: 0 0 5px #fff;
+        }
+        60% {
+            opacity: 1;
+            transform: scale(1.1);
+            text-shadow: 0 0 10px #fff, 0 0 20px var(--color-brand-primary), 0 0 35px var(--color-brand-primary);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1);
+            text-shadow: 0 0 5px #fff, 0 0 15px var(--color-brand-primary), 0 0 25px var(--color-brand-primary);
+        }
+      }
+      
+      /* Scoreboard animations */
+      @keyframes materialize {
+        from {
+          opacity: 0;
+          transform: scale(0.95) translateY(10px);
+          clip-path: inset(45% 45% 45% 45%);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+          clip-path: inset(0% 0% 0% 0%);
+        }
+      }
+      @keyframes dematerialize {
+        from {
+          opacity: 1;
+          transform: scale(1);
+          clip-path: inset(0% 0% 0% 0%);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.95);
+          clip-path: inset(45% 45% 45% 45%);
+        }
+      }
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+      @keyframes score-update {
+        0% { transform: scale(1); color: var(--color-brand-primary); text-shadow: none; }
+        50% { transform: scale(1.5); color: var(--color-brand-secondary); text-shadow: 0 0 15px var(--color-brand-secondary); }
+        100% { transform: scale(1); color: var(--color-brand-primary); text-shadow: none; }
+      }
+
+      /* Glitch effect for EndGameScreen */
+      .glitch-effect {
+        position: relative;
+        animation: text-glow-and-scale 1.5s ease-out 0.5s forwards; /* Keep the glow, but delay it */
+        opacity: 0; /* Start invisible */
+      }
+      .glitch-effect::before,
+      .glitch-effect::after {
+        content: attr(data-text);
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--color-bg-dark);
+        overflow: hidden;
+      }
+      .glitch-effect::before {
+        left: 2px;
+        text-shadow: -2px 0 var(--color-brand-accent);
+        animation: glitch-anim 2s infinite linear alternate-reverse;
+      }
+      .glitch-effect::after {
+        left: -2px;
+        text-shadow: -2px 0 var(--color-brand-secondary), 2px 2px var(--color-brand-primary);
+        animation: glitch-anim-2 2s infinite linear alternate-reverse;
+      }
+      @keyframes glitch-anim {
+        0% { clip-path: inset(89% 0 1% 0); }
+        5% { clip-path: inset(43% 0 35% 0); }
+        10% { clip-path: inset(89% 0 1% 0); }
+        15% { clip-path: inset(23% 0 45% 0); }
+        20% { clip-path: inset(89% 0 1% 0); }
+        25% { clip-path: inset(13% 0 65% 0); }
+        30% { clip-path: inset(89% 0 1% 0); }
+        35% { clip-path: inset(53% 0 25% 0); }
+        40% { clip-path: inset(89% 0 1% 0); }
+        45% { clip-path: inset(3% 0 95% 0); }
+        50% { clip-path: inset(89% 0 1% 0); }
+        55% { clip-path: inset(63% 0 5% 0); }
+        60% { clip-path: inset(89% 0 1% 0); }
+        65% { clip-path: inset(23% 0 75% 0); }
+        70% { clip-path: inset(89% 0 1% 0); }
+        75% { clip-path: inset(43% 0 35% 0); }
+        80% { clip-path: inset(89% 0 1% 0); }
+        85% { clip-path: inset(13% 0 85% 0); }
+        90% { clip-path: inset(89% 0 1% 0); }
+        95% { clip-path: inset(53% 0 15% 0); }
+        100% { clip-path: inset(89% 0 1% 0); }
+      }
+      @keyframes glitch-anim-2 {
+        0% { clip-path: inset(3% 0 95% 0); }
+        5% { clip-path: inset(53% 0 25% 0); }
+        10% { clip-path: inset(3% 0 95% 0); }
+        15% { clip-path: inset(83% 0 5% 0); }
+        20% { clip-path: inset(3% 0 95% 0); }
+        25% { clip-path: inset(43% 0 45% 0); }
+        30% { clip-path: inset(3% 0 95% 0); }
+        35% { clip-path: inset(13% 0 65% 0); }
+        40% { clip-path: inset(3% 0 95% 0); }
+        45% { clip-path: inset(73% 0 5% 0); }
+        50% { clip-path: inset(3% 0 95% 0); }
+        55% { clip-path: inset(23% 0 75% 0); }
+        60% { clip-path: inset(3% 0 95% 0); }
+        65% { clip-path: inset(93% 0 5% 0); }
+        70% { clip-path: inset(3% 0 95% 0); }
+        75% { clip-path: inset(33% 0 35% 0); }
+        80% { clip-path: inset(3% 0 95% 0); }
+        85% { clip-path: inset(63% 0 25% 0); }
+        90% { clip-path: inset(3% 0 95% 0); }
+        95% { clip-path: inset(93% 0 5% 0); }
+        100% { clip-path: inset(3% 0 95% 0); }
+      }
+
+      .multiplayer-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      @media (min-width: 1024px) {
+        .multiplayer-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      /* New Multiplayer Lobby Styles */
+      .lobby-card {
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .lobby-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 0.75rem; /* same as rounded-xl */
+        border: 2px solid transparent;
+        background: linear-gradient(120deg, var(--color-brand-primary), var(--color-brand-accent)) border-box;
+        -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: destination-out;
+        mask-composite: exclude;
+        opacity: 0.6;
+        transition: opacity 0.3s ease;
+      }
+      .lobby-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+      .lobby-card:hover::before {
+        opacity: 1;
+      }
+      
+      .exit-multiplayer-btn {
+        position: fixed;
+        top: 6.5rem; /* Adjust based on header height */
+        right: 1.5rem;
+        z-index: 60;
+      }
+
+    </style>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'brand-primary': 'var(--color-brand-primary)',
+              'brand-secondary': 'var(--color-brand-secondary)',
+              'brand-accent': 'var(--color-brand-accent)',
+              'bg-dark': 'var(--color-bg-dark)',
+              'bg-light': 'var(--color-bg-light)',
+              'text-primary': 'var(--color-text-primary)',
+              'text-secondary': 'var(--color-text-secondary)',
+              'border-color': 'var(--color-border-color)',
+              'code-bg': 'var(--color-code-bg)',
+              'code-border': 'var(--color-code-border)',
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['Fira Code', 'monospace'],
+            },
+            animation: {
+              'fade-in': 'fadeIn 1s ease-out forwards',
+              'slide-in-up': 'slideInUp 0.8s ease-out forwards',
+              'trophy-glow': 'trophy-glow 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards',
+              'motivation-fade-in': 'motivation-fade-in 1.5s ease-out forwards',
+              'victory-text': 'text-glow-and-scale 1.5s ease-out forwards',
+              'materialize': 'materialize 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards',
+              'dematerialize': 'dematerialize 0.3s ease-in-out forwards',
+              'fade-out': 'fadeOut 0.3s ease-in-out forwards',
+              'score-update': 'score-update 0.8s ease-in-out',
+            },
+          },
+        },
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.16.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-bg-dark font-sans text-text-primary transition-colors duration-300">
+    <canvas id="particle-canvas"></canvas>
+    <div id="root"></div>
+    <script>
+      const canvas = document.getElementById('particle-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      const numParticles = 100;
+      
+      const particleColors = {
+        dark: {
+          particle: 'rgba(0, 169, 165, 0.5)',
+          line: (opacity) => `rgba(78, 204, 163, ${opacity})`
+        },
+        light: {
+          particle: 'rgba(31, 41, 55, 0.4)', // dark gray
+          line: (opacity) => `rgba(107, 114, 128, ${opacity})` // medium gray
+        }
+      };
+      let currentTheme = 'dark';
+      let currentColors = particleColors.dark;
+
+      function updateParticleColors() {
+        const theme = document.documentElement.dataset.theme || 'dark';
+        if (theme !== currentTheme) {
+            currentTheme = theme;
+            currentColors = particleColors[currentTheme];
+            // Re-initialize particles to apply new colors immediately
+            init();
+        }
+      }
+
+      function resizeCanvas() {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+      }
+
+      class Particle {
+          constructor(x, y) {
+              this.x = x;
+              this.y = y;
+              this.size = Math.random() * 2 + 1;
+              this.speedX = (Math.random() - 0.5) * 1.5;
+              this.speedY = (Math.random() - 0.5) * 1.5;
+              this.color = currentColors.particle;
+          }
+          update() {
+              this.x += this.speedX;
+              this.y += this.speedY;
+
+              if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+              if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+          }
+          draw() {
+              ctx.fillStyle = this.color;
+              ctx.beginPath();
+              ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+              ctx.fill();
+          }
+      }
+
+      function init() {
+          particles = [];
+          for (let i = 0; i < numParticles; i++) {
+              particles.push(new Particle(Math.random() * canvas.width, Math.random() * canvas.height));
+          }
+      }
+
+      function connect() {
+          for (let a = 0; a < particles.length; a++) {
+              for (let b = a; b < particles.length; b++) {
+                  const dx = particles[a].x - particles[b].x;
+                  const dy = particles[a].y - particles[b].y;
+                  const distance = Math.sqrt(dx * dx + dy * dy);
+
+                  if (distance < 100) {
+                      ctx.strokeStyle = currentColors.line(1 - distance / 100);
+                      ctx.lineWidth = 0.5;
+                      ctx.beginPath();
+                      ctx.moveTo(particles[a].x, particles[a].y);
+                      ctx.lineTo(particles[b].x, particles[b].y);
+                      ctx.stroke();
+                  }
+              }
+          }
+      }
+
+      function animate() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          particles.forEach(p => {
+              p.update();
+              p.draw();
+          });
+          connect();
+          requestAnimationFrame(animate);
+      }
+      
+      const observer = new MutationObserver((mutationsList) => {
+        for (const mutation of mutationsList) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                updateParticleColors();
+            }
+        }
+      });
+
+      observer.observe(document.documentElement, { attributes: true });
+
+      window.addEventListener('resize', () => {
+          resizeCanvas();
+          init();
+      });
+
+      resizeCanvas();
+      updateParticleColors(); // This will call init()
+      animate();
+    </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

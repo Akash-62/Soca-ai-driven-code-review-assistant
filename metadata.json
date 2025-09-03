@@ -1,0 +1,5 @@
+{
+  "name": "SOCA – AI-Driven Code Review Assistant",
+  "description": "An AI-powered code review assistant that analyzes, debugs, and optimizes code like a senior software engineer. It provides structured, production-ready improvements and suggestions.",
+  "requestFramePermissions": []
+}
