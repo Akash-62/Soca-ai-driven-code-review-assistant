@@ -8,7 +8,7 @@ interface AnalysisOutputProps {
 
 const SectionCard: React.FC<{ title: string; icon: React.ReactNode; items: AnalysisSection[]; accentColor: string }> = ({ title, icon, items, accentColor }) => {
   return (
-    <div className="mb-6 bg-bg-light/40 rounded-lg overflow-hidden border border-border-color/50 backdrop-blur-md transition-all duration-300 hover:border-brand-primary/50 hover:shadow-lg">
+    <div className="mb-6 section-card bg-bg-light/40 rounded-lg overflow-hidden border border-border-color/50 backdrop-blur-md transition-all duration-300 hover:border-brand-primary/50 hover:shadow-lg">
       <h3 className={`flex items-center p-3 text-lg font-bold text-text-primary bg-border-color/30 border-l-4 ${accentColor}`}>
         {icon}
         <span className="ml-2">{title}</span>
@@ -123,10 +123,12 @@ const AnalysisOutput: React.FC<AnalysisOutputProps> = ({ result }) => {
         </button>
       </div>
       <div className="flex-grow overflow-y-auto p-6">
-        <SectionCard title="Errors" icon={<BugIcon />} items={result.errors} accentColor="border-red-500" />
-        <SectionCard title="Warnings" icon={<AlertTriangleIcon />} items={result.warnings} accentColor="border-yellow-500" />
-        <SectionCard title="Optimizations" icon={<ZapIcon />} items={result.optimizations} accentColor="border-blue-500" />
-        <SectionCard title="Best Practices" icon={<CheckCircleIcon />} items={result.bestPractices} accentColor="border-green-500" />
+        <div className="mx-auto max-w-3xl">
+          <SectionCard title="Errors" icon={<BugIcon />} items={result.errors} accentColor="border-red-500" />
+          <SectionCard title="Warnings" icon={<AlertTriangleIcon />} items={result.warnings} accentColor="border-yellow-500" />
+          <SectionCard title="Optimizations" icon={<ZapIcon />} items={result.optimizations} accentColor="border-blue-500" />
+          <SectionCard title="Best Practices" icon={<CheckCircleIcon />} items={result.bestPractices} accentColor="border-green-500" />
+        </div>
       </div>
     </div>
   );
