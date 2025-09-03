@@ -1,0 +1,97 @@
+/* Global responsive helpers and mobile fixes */
+/* Keep this file small and non-intrusive; Tailwind classes remain primary styling source. */
+
+/* Box sizing and sensible defaults */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+img, svg, picture {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent long inline content from breaking layout on small screens */
+pre, code, .font-mono {
+  white-space: pre-wrap; /* wrap long lines */
+  word-break: break-word;
+}
+
+/* Make flex children shrink to avoid overflow in nested flex layouts */
+.flex > * {
+  min-width: 0;
+}
+
+/* Make buttons and controls wrap their text on small screens */
+button {
+  white-space: normal;
+}
+
+/* Smooth scrolling for overflow areas on mobile */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure container uses padding on small screens so content doesn't touch edges */
+.container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Tweak specific components for smaller viewports */
+@media (max-width: 767px) {
+  /* Reduce header spacing and allow wrapping */
+  header .container {
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  /* Make multiplayer grid always stack on mobile */
+  .multiplayer-grid {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+
+  /* Soften large paddings on lobby cards */
+  .lobby-card {
+    padding: 1rem !important;
+    border-radius: 0.75rem;
+  }
+
+  /* Reposition exit button so it doesn't overlap small screens */
+  .exit-multiplayer-btn {
+    top: 5.5rem !important;
+    right: 0.75rem !important;
+    left: auto !important;
+  }
+
+  /* Ensure panels with fixed left padding (pl-9 etc.) don't overflow */
+  .pl-9 {
+    padding-left: 1.5rem !important; /* slightly smaller on mobile */
+  }
+
+  /* Reduce large logo/icon sizes if present */
+  .w-20 { width: 4.5rem; }
+  .h-20 { height: 4.5rem; }
+
+  /* Ensure any fixed width or tracking-widest elements can wrap */
+  .tracking-widest {
+    letter-spacing: 0.02em;
+  }
+}
+
+/* Small improvements for medium screens */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .container { padding-left: 1rem; padding-right: 1rem; }
+  .pl-9 { padding-left: 1.75rem !important; }
+}
+
+/* Keep code blocks horizontally scrollable on narrow screens but wrapped by default */
+pre { overflow-x: auto; }
