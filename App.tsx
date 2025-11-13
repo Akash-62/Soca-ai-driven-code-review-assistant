@@ -304,7 +304,10 @@ function App() {
       if(result.isCorrect) {
         const winner = multiplayerState.players[playerIndex];
         const newScore = winner.score + 1;
-        const updatedPlayers: [Player, Player] = [...multiplayerState.players];
+        const updatedPlayers: [Player, Player] = [
+          multiplayerState.players[0], 
+          multiplayerState.players[1]
+        ];
         updatedPlayers[playerIndex] = { ...winner, score: newScore };
 
         setRoundEndMessage(`${winner.name} wins the round!`);

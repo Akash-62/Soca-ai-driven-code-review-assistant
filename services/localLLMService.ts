@@ -1,4 +1,5 @@
 import { SkillLevel, AnalysisResult, Challenge, ChallengeResult, ValidationResult } from '../types';
+import { responseCache } from './responseCache';
 
 // Ollama API endpoint (runs locally on port 11434 by default)
 const OLLAMA_API_URL = 'http://localhost:11434/api/generate';
@@ -37,6 +38,13 @@ interface OllamaResponse {
 }
 
 const callOllama = async (prompt: string, systemPrompt: string, temperature: number = 0.3): Promise<string> => {
+  // Check cache first
+  const cachedResponse = responseCache.get(prompt, systemPrompt, temperature);
+  if (cachedResponse) {
+    console.log('✅ Using cached response');
+    return cachedResponse;
+  }
+
   const fullPrompt = `${systemPrompt}\n\n${prompt}`;
   
   const requestBody: OllamaRequest = {
@@ -51,37 +59,60 @@ const callOllama = async (prompt: string, systemPrompt: string, temperature: num
     },
   };
 
-  try {
-    const response = await fetch(OLLAMA_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
+  // Retry logic with exponential backoff
+  const maxRetries = 3;
+  let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Ollama API error response:', errorText);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(OLLAMA_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Ollama API error response:', errorText);
+        
+        if (response.status === 404) {
+          throw new Error(`Model "${MODEL_NAME}" not found. Please download it first:\n\nRun in terminal:\nollama pull ${MODEL_NAME}\n\nOr use the Ollama app to download models.`);
+        }
+        
+        throw new Error(`Ollama API error: ${response.status} ${response.statusText}\nDetails: ${errorText}`);
+      }
+
+      const data: OllamaResponse = await response.json();
       
-      if (response.status === 404) {
-        throw new Error(`Model "${MODEL_NAME}" not found. Please download it first:\n\nRun in terminal:\nollama pull ${MODEL_NAME}\n\nOr use the Ollama app to download models.`);
+      // Cache successful response
+      responseCache.set(prompt, systemPrompt, temperature, data.response);
+      
+      return data.response;
+    } catch (error) {
+      lastError = error as Error;
+      console.error(`Attempt ${attempt}/${maxRetries} failed:`, error);
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error(`Cannot connect to Ollama. Make sure:\n1. Ollama is installed from https://ollama.com\n2. Ollama is running (check if http://localhost:11434 is accessible)\n3. The model "${MODEL_NAME}" is downloaded (run: ollama pull ${MODEL_NAME})`);
       }
       
-      throw new Error(`Ollama API error: ${response.status} ${response.statusText}\nDetails: ${errorText}`);
+      // Don't retry on user errors (404, invalid model, etc.)
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw error;
+      }
+      
+      // Exponential backoff for retries
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        console.log(`Retrying in ${delay/1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
-
-    const data: OllamaResponse = await response.json();
-    return data.response;
-  } catch (error) {
-    console.error('Error calling Ollama API:', error);
-    
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error(`Cannot connect to Ollama. Make sure:\n1. Ollama is installed from https://ollama.com\n2. Ollama is running (check if http://localhost:11434 is accessible)\n3. The model "${MODEL_NAME}" is downloaded (run: ollama pull ${MODEL_NAME})`);
-    }
-    
-    throw error;
   }
+  
+  throw lastError || new Error('Failed after multiple retries');
 };
 
 export const analyzeCode = async (code: string, skillLevel: SkillLevel): Promise<AnalysisResult> => {
