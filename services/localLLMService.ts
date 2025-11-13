@@ -1,9 +1,9 @@
 import { SkillLevel, AnalysisResult, Challenge, ChallengeResult, ValidationResult } from '../types';
 import { responseCache } from './responseCache';
 
-// Ollama API endpoint (runs locally on port 11434 by default)
-const OLLAMA_API_URL = 'http://localhost:11434/api/generate';
-const MODEL_NAME = 'llama3.2:3b'; // Smaller, faster (2GB) - good for quick testing
+// Auto-detect Ollama API URL: local or cloud (Hugging Face)
+const OLLAMA_API_URL = import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434/api/generate';
+const MODEL_NAME = import.meta.env.VITE_MODEL_NAME || 'qwen2.5-coder:1.5b'; // Fast model optimized for code
 // Alternative models (uncomment to use):
 // const MODEL_NAME = 'qwen2.5-coder:7b'; // Recommended: powerful for code, small enough to run on most machines
 // const MODEL_NAME = 'deepseek-coder:6.7b'; // specialized for code
@@ -37,7 +37,7 @@ interface OllamaResponse {
   done: boolean;
 }
 
-const callOllama = async (prompt: string, systemPrompt: string, temperature: number = 0.3): Promise<string> => {
+const callOllama = async (prompt: string, systemPrompt: string, temperature: number = 0.2): Promise<string> => {
   // Check cache first
   const cachedResponse = responseCache.get(prompt, systemPrompt, temperature);
   if (cachedResponse) {
