@@ -90,7 +90,7 @@ Please write clear commit messages and keep changes focused.
 Add a license (e.g. MIT) – currently unspecified.
 
 ---
-**Maintainer:** @Akash-62  
+**Maintainer:** @Akash-S
 Found a bug or have an idea? Open an issue or start a discussion.
 
 Enjoy building with SOCA! ⚡
