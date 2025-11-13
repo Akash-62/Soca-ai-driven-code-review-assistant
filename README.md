@@ -10,7 +10,7 @@
 </div>
 
 ## 🚀 Overview
-SOCA is an AI‑assisted code review and competitive debugging playground. Paste code to get structured AI feedback, generate repair challenges, or battle in multiplayer / duel modes. Designed for learning, rapid iteration, and a bit of fun.
+SOCA is an AI‑assisted code review and competitive debugging playground powered by **local open-source LLMs**. Paste code to get structured AI feedback, generate repair challenges, or battle in multiplayer / duel modes. Designed for learning, rapid iteration, and a bit of fun — **all running privately on your machine, no API keys needed**.
 
 ## ✨ Features
 | Area | Description |
@@ -27,37 +27,64 @@ SOCA is an AI‑assisted code review and competitive debugging playground. Paste
 - React 19 + TypeScript
 - Vite build tool
 - Tailwind CDN (inline config) + custom CSS enhancements
-- Google Gemini API (`@google/generative-ai`)
-- Deployed on Vercel
+- **Ollama + Local LLMs** (Qwen 2.5 Coder 7B, Llama 3.2, DeepSeek Coder)
+- Deployed on Vercel (frontend only; LLM runs locally)
 
 ## ⚙️ Prerequisites
 - Node.js 18+ (recommended LTS)
-- A Gemini API Key from Google AI Studio
+- **Ollama** (for running local LLMs)
+- 8GB RAM minimum (16GB recommended for 7B models)
 
 ## 🔐 Environment Variables
-Create a local `.env.local` (never commit secrets). Client‑exposed keys must be prefixed with `VITE_`.
+**No API keys required!** SOCA now uses local LLMs via Ollama.
 
-```env
-VITE_API_KEY=YOUR_GEMINI_KEY_HERE
+The old `.env.local` file is no longer needed. You can delete it or keep it for backup if you want to switch back to cloud APIs later.
+
+### Optional: Switch Models
+Edit `services/localLLMService.ts` line 5 to change the model:
+```typescript
+const MODEL_NAME = 'qwen2.5-coder:7b'; // Default
+// Or: 'llama3.2:3b', 'deepseek-coder:6.7b', 'codellama:7b'
 ```
-
-In code the key is accessed via:
-```ts
-const apiKey = import.meta.env.VITE_API_KEY;
-```
-
-> Important: Any variable starting with `VITE_` is embedded in the client bundle. For true secrets, move logic to a serverless endpoint (not yet implemented here) and use a non‑exposed variable like `GEMINI_API_KEY` on Vercel.
 
 ## 🛠️ Local Development
+
+### Step 1: Install Ollama
+```bash
+# Windows (using winget):
+winget install Ollama.Ollama
+
+# macOS:
+brew install ollama
+
+# Linux:
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+Or download from: https://ollama.com/download
+
+### Step 2: Start Ollama & Pull a Model
+```bash
+# Start Ollama server (runs on port 11434)
+ollama serve
+
+# In a NEW terminal, download the default model (4.7GB):
+ollama pull qwen2.5-coder:7b
+
+# Or use a smaller/faster model (2GB):
+ollama pull llama3.2:3b
+```
+
+### Step 3: Clone & Run SOCA
 ```bash
 git clone https://github.com/Akash-62/Soca-ai-driven-code-review-assistant.git
 cd Soca-ai-driven-code-review-assistant
 npm install
-cp .env.local.example .env.local  # (create if you add an example file later)
-# add your VITE_API_KEY value
 npm run dev
 ```
 Open: http://localhost:5173
+
+📖 **Detailed setup guide**: See [LOCAL_LLM_SETUP.md](./LOCAL_LLM_SETUP.md)
 
 ## 📦 Available Scripts
 | Script | Purpose |
@@ -67,12 +94,26 @@ Open: http://localhost:5173
 | `npm run preview` | Preview production build locally |
 
 ## ☁️ Deployment (Vercel)
+⚠️ **Note**: SOCA now requires a local LLM backend. The Vercel deployment only hosts the **frontend UI**. 
+
+For full functionality, you need to either:
+1. Run Ollama locally and use the deployed UI to connect to `http://localhost:11434`
+2. Deploy an Ollama server on a VPS and update `OLLAMA_API_URL` in `localLLMService.ts`
+3. Create a serverless backend wrapper (e.g., Vercel Edge Functions) to proxy LLM requests
+
+### Frontend-Only Deployment:
 1. Push to `main` on GitHub.
 2. Import the repo into Vercel (Framework: Vite detected).
-3. Set Environment Variable `VITE_API_KEY` under Project → Settings → Environment Variables (Production + Preview).
-4. Trigger Deploy. Output directory: `dist`.
+3. No environment variables needed.
+4. Deploy. Output directory: `dist`.
 
-To redeploy after changing env vars: Redeploy from the deployment page or push a new commit.
+**For production use**, consider deploying Ollama on:
+- Railway (https://railway.app)
+- Render (https://render.com)
+- AWS EC2 / Azure VM
+- Your own server with public IP
+
+Update `OLLAMA_API_URL` in `localLLMService.ts` to your server's address.
 
 ## 🧪 Future Enhancements (Roadmap)
 - True real‑time online multiplayer (WebSockets / RTC)
@@ -93,9 +134,11 @@ PRs and issue reports welcome. Suggested flow:
 Please write clear commit messages and keep changes focused.
 
 ## 🛡️ Security Notes
-- Don’t leak actual secrets in `VITE_` variables if you can avoid it.
-- Rotate API keys if accidentally committed (use provider console).
-- Add runtime validation for user input before sending to the model (possible future enhancement).
+- ✅ **No API keys** - Everything runs locally
+- ✅ **Privacy-first** - Your code never leaves your machine
+- ✅ **No rate limits** - Use as much as you want
+- ✅ **Offline capable** - Works without internet (after model download)
+- Add runtime validation for user input before sending to the model (possible future enhancement)
 
 ## 📄 License
 Add a license (e.g. MIT) – currently unspecified.

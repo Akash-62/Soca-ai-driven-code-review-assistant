@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { SkillLevel, AnalysisResult, AppMode, Challenge, ChallengeResult, MultiplayerGameState, Player, MultiplayerMode, OnlineGameState } from './types';
-import { analyzeCode, generateChallenge, compareSolutions, validateSolution } from './services/geminiService';
+import { analyzeCode, generateChallenge, compareSolutions, validateSolution } from './services/localLLMService';
 import useHistory from './hooks/useHistory';
 import Header from './components/Header';
 import CodeInput from './components/CodeInput';
