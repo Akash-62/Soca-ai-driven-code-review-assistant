@@ -1,13 +1,8 @@
 import { SkillLevel, AnalysisResult, Challenge, ChallengeResult, ValidationResult } from '../types';
-import { responseCache } from './responseCache';
 
-// Auto-detect Ollama API URL: local or cloud (Hugging Face)
-const OLLAMA_API_URL = import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434/api/generate';
-const MODEL_NAME = import.meta.env.VITE_MODEL_NAME || 'qwen2.5-coder:1.5b'; // Fast model optimized for code
-// Alternative models (uncomment to use):
-// const MODEL_NAME = 'qwen2.5-coder:7b'; // Recommended: powerful for code, small enough to run on most machines
-// const MODEL_NAME = 'deepseek-coder:6.7b'; // specialized for code
-// const MODEL_NAME = 'codellama:7b'; // Meta's code-focused model
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const MODEL_NAME = 'llama-3.3-70b-versatile'; // Fast and powerful for code
 
 const getSystemInstruction = (skillLevel: SkillLevel): string => {
   const baseInstruction = `You are SOCA (Smart Optimized Code Auditor), an expert AI code review assistant. Your mission is to analyze, debug, and optimize code like a senior software engineer and mentor. Review the user's code for syntax errors, runtime issues, security flaws, and performance bottlenecks. Suggest clean, optimized, and idiomatic solutions. Always provide a fully rewritten, production-ready version of the code. Your output MUST be a valid JSON object.`;
@@ -18,101 +13,42 @@ const getSystemInstruction = (skillLevel: SkillLevel): string => {
   return `${baseInstruction} Adapt your tone for a senior engineer. Be concise, technical, and direct. Focus on high-level architecture, design patterns, and subtle performance optimizations.`;
 };
 
-interface OllamaRequest {
-  model: string;
-  prompt: string;
-  stream: boolean;
-  format?: 'json';
-  options?: {
-    temperature?: number;
-    top_p?: number;
-    top_k?: number;
-  };
-}
-
-interface OllamaResponse {
-  model: string;
-  created_at: string;
-  response: string;
-  done: boolean;
-}
-
-const callOllama = async (prompt: string, systemPrompt: string, temperature: number = 0.2): Promise<string> => {
-  // Check cache first
-  const cachedResponse = responseCache.get(prompt, systemPrompt, temperature);
-  if (cachedResponse) {
-    console.log('✅ Using cached response');
-    return cachedResponse;
+const callGroq = async (prompt: string, systemPrompt: string): Promise<string> => {
+  if (!GROQ_API_KEY) {
+    throw new Error('Groq API key is missing. Please add VITE_GROQ_API_KEY to your .env file.\n\nGet your free API key from: https://console.groq.com/keys');
   }
 
-  const fullPrompt = `${systemPrompt}\n\n${prompt}`;
-  
-  const requestBody: OllamaRequest = {
-    model: MODEL_NAME,
-    prompt: fullPrompt,
-    stream: false,
-    format: 'json',
-    options: {
-      temperature,
-      top_p: 0.9,
-      top_k: 40,
+  const response = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
     },
-  };
+    body: JSON.stringify({
+      model: MODEL_NAME,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 4096,
+      response_format: { type: 'json_object' }
+    }),
+  });
 
-  // Retry logic with exponential backoff
-  const maxRetries = 3;
-  let lastError: Error | null = null;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await fetch(OLLAMA_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Ollama API error response:', errorText);
-        
-        if (response.status === 404) {
-          throw new Error(`Model "${MODEL_NAME}" not found. Please download it first:\n\nRun in terminal:\nollama pull ${MODEL_NAME}\n\nOr use the Ollama app to download models.`);
-        }
-        
-        throw new Error(`Ollama API error: ${response.status} ${response.statusText}\nDetails: ${errorText}`);
-      }
-
-      const data: OllamaResponse = await response.json();
-      
-      // Cache successful response
-      responseCache.set(prompt, systemPrompt, temperature, data.response);
-      
-      return data.response;
-    } catch (error) {
-      lastError = error as Error;
-      console.error(`Attempt ${attempt}/${maxRetries} failed:`, error);
-      
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error(`Cannot connect to Ollama. Make sure:\n1. Ollama is installed from https://ollama.com\n2. Ollama is running (check if http://localhost:11434 is accessible)\n3. The model "${MODEL_NAME}" is downloaded (run: ollama pull ${MODEL_NAME})`);
-      }
-      
-      // Don't retry on user errors (404, invalid model, etc.)
-      if (error instanceof Error && error.message.includes('not found')) {
-        throw error;
-      }
-      
-      // Exponential backoff for retries
-      if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
-        console.log(`Retrying in ${delay/1000}s...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Groq API error:', errorText);
+    
+    if (response.status === 401) {
+      throw new Error('Invalid Groq API key. Please check your VITE_GROQ_API_KEY.\n\nGet a new key from: https://console.groq.com/keys');
     }
+    
+    throw new Error(`Groq API error: ${response.status} ${response.statusText}\nDetails: ${errorText}`);
   }
-  
-  throw lastError || new Error('Failed after multiple retries');
+
+  const data = await response.json();
+  return data.choices[0].message.content;
 };
 
 export const analyzeCode = async (code: string, skillLevel: SkillLevel): Promise<AnalysisResult> => {
@@ -142,7 +78,7 @@ The JSON object must have the following structure:
 `;
 
   try {
-    const jsonText = await callOllama(prompt, getSystemInstruction(skillLevel), 0.3);
+    const jsonText = await callGroq(prompt, getSystemInstruction(skillLevel));
     const parsedResult = JSON.parse(jsonText) as AnalysisResult;
     
     if (!parsedResult.rewrittenCode) {
@@ -151,7 +87,7 @@ The JSON object must have the following structure:
     return parsedResult;
   } catch (error) {
     console.error('Error analyzing code:', error);
-    throw new Error('Failed to get analysis from local LLM. Please check the console for more details.');
+    throw new Error('Failed to get analysis from Groq AI. Please check the console for more details.');
   }
 };
 
@@ -159,11 +95,11 @@ export const generateChallenge = async (skillLevel: SkillLevel): Promise<Challen
   const prompt = `Generate a short, buggy code snippet in JavaScript or React for a ${skillLevel}-level developer to fix. The code should have 2-3 clear issues. Provide the buggy code and a concise description of the task. The JSON object should have the following structure: { "buggyCode": "", "description": "" }.`;
 
   try {
-    const jsonText = await callOllama(prompt, getSystemInstruction(skillLevel), 0.8);
+    const jsonText = await callGroq(prompt, getSystemInstruction(skillLevel));
     return JSON.parse(jsonText) as Challenge;
   } catch (error) {
     console.error('Error generating challenge:', error);
-    throw new Error('Failed to generate a challenge from local LLM.');
+    throw new Error('Failed to generate a challenge from Groq AI.');
   }
 };
 
@@ -185,11 +121,11 @@ Please perform the following tasks and respond with a JSON object with the struc
 `;
 
   try {
-    const jsonText = await callOllama(prompt, getSystemInstruction(skillLevel), 0.3);
+    const jsonText = await callGroq(prompt, getSystemInstruction(skillLevel));
     return JSON.parse(jsonText) as ChallengeResult;
   } catch (error) {
     console.error('Error comparing solutions:', error);
-    throw new Error('Failed to get comparison from local LLM.');
+    throw new Error('Failed to get comparison from Groq AI.');
   }
 };
 
@@ -212,7 +148,7 @@ Answer with only a JSON object with the structure { "isCorrect": boolean, "feedb
   const systemPrompt = "You are an automated code judge. Be strict but fair. Your only job is to determine if the submitted code fixes the core issues of the buggy code. Your output MUST be a valid JSON object.";
 
   try {
-    const jsonText = await callOllama(prompt, systemPrompt, 0.1);
+    const jsonText = await callGroq(prompt, systemPrompt);
     return JSON.parse(jsonText) as ValidationResult;
   } catch (error) {
     console.error('Error validating solution:', error);

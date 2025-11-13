@@ -1,6 +1,6 @@
 <div align="center">
    <h1>⚡ SOCA – Smart Optimized Code Auditor</h1>
-   <p><strong>AI‑driven, gamified code review & challenge arena powered by Gemini.</strong></p>
+   <p><strong>AI‑driven, gamified code review & challenge arena powered by Groq AI.</strong></p>
    <p>
       <a href="https://vercel.com/" target="_blank"><img alt="Deploy" src="https://img.shields.io/badge/Deployed_on-Vercel-black?logo=vercel" /></a>
       <img alt="Vite" src="https://img.shields.io/badge/Vite-6+-646CFF?logo=vite&logoColor=white" />
@@ -10,7 +10,7 @@
 </div>
 
 ## 🚀 Overview
-SOCA is an AI‑assisted code review and competitive debugging playground powered by **local open-source LLMs**. Paste code to get structured AI feedback, generate repair challenges, or battle in multiplayer / duel modes. Designed for learning, rapid iteration, and a bit of fun — **all running privately on your machine, no API keys needed**.
+SOCA is an AI‑assisted code review and competitive debugging playground powered by **Groq AI** (blazing fast, free API). Paste code to get structured AI feedback, generate repair challenges, or battle in multiplayer / duel modes. Designed for learning, rapid iteration, and a bit of fun — **with instant responses in 1-2 seconds!**
 
 ## ✨ Features
 | Area | Description |
@@ -27,25 +27,25 @@ SOCA is an AI‑assisted code review and competitive debugging playground powere
 - React 19 + TypeScript
 - Vite build tool
 - Tailwind CDN (inline config) + custom CSS enhancements
-- **Ollama + Local LLMs** (Qwen 2.5 Coder 7B, Llama 3.2, DeepSeek Coder)
-- Deployed on Vercel (frontend only; LLM runs locally)
+- **Groq AI API** (Llama 3.1 70B - blazing fast, free tier)
+- Deployed on Vercel
 
 ## ⚙️ Prerequisites
 - Node.js 18+ (recommended LTS)
-- **Ollama** (for running local LLMs)
-- 8GB RAM minimum (16GB recommended for 7B models)
+- **Groq API Key** (free from https://console.groq.com/keys)
 
 ## 🔐 Environment Variables
-**No API keys required!** SOCA now uses local LLMs via Ollama.
+Create a `.env.local` file in the root directory:
 
-The old `.env.local` file is no longer needed. You can delete it or keep it for backup if you want to switch back to cloud APIs later.
-
-### Optional: Switch Models
-Edit `services/localLLMService.ts` line 5 to change the model:
-```typescript
-const MODEL_NAME = 'qwen2.5-coder:7b'; // Default
-// Or: 'llama3.2:3b', 'deepseek-coder:6.7b', 'codellama:7b'
+```bash
+VITE_GROQ_API_KEY=your_groq_api_key_here
 ```
+
+**Get your free Groq API key:**
+1. Visit https://console.groq.com/keys
+2. Sign up (free)
+3. Create a new API key
+4. Copy it to your `.env.local` file
 
 ## 🛠️ Local Development
 
